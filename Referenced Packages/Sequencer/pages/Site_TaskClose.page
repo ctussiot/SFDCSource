@@ -1,0 +1,32 @@
+<apex:page controller="seq.TaskCloserController" showHeader="false" sidebar="false">
+    <apex:sectionHeader title="Task Completion"/>
+    <apex:pageMessages id="msg"></apex:pageMessages>
+    <apex:form >
+        <apex:pageBlock rendered="{!showBlock}">
+            <apex:pageBlockButtons >
+                <apex:commandButton value="Closing Task Request" action="{!closeTask}" status="process" reRender="msg, panel" disabled="{!isCloseBtnDisabled}"/>
+            </apex:pageBlockButtons>
+            <!-- close -->
+            <apex:pageBlockSection id="panel">
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel >Task:</apex:outputLabel>
+                    <apex:outputText >{!taskId}</apex:outputText>
+                </apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel >Contact:</apex:outputLabel>
+                    <apex:outputText >{!contactName}</apex:outputText>
+                </apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel >Task Description(additional):</apex:outputLabel>
+                    <apex:inputTextarea value="{!additionalComment}"/>
+                </apex:pageBlockSectionItem>
+            </apex:pageBlockSection>
+            <!-- status -->
+            <apex:actionStatus id="process">
+                <apex:facet name="start">
+                    <c:loading text="Processing..." />
+                </apex:facet>
+            </apex:actionStatus>
+        </apex:pageBlock>
+    </apex:form>
+</apex:page>

@@ -1,0 +1,29 @@
+<apex:page showHeader="false" sidebar="false" tabStyle="seq__Task__c" controller="seq.TaskController" action="{!callMethod}">
+    <apex:sectionHeader title="Task Dependency" subtitle="{!tskName}"/>
+    <apex:pageBlock >
+        <apex:pageBlockSection columns="1" title="Controlling Task(s)">
+            <apex:outputText rendered="{!isConTaskListEmpty}">No records to display.</apex:outputText>
+            <apex:pageBlockTable value="{!conTMList}" var="tM" rendered="{!NOT(isConTaskListEmpty)}">
+                <apex:column headerValue="Controlling Task Mapper" width="30%">
+                    <apex:outputLink style="color: #009;" value="{!URLFOR($Action.Controlling_Task_Mapper__c.View, tM.Id)}">{!tM.Name}</apex:outputLink>
+                </apex:column>
+                <apex:column headerValue="Controlling Task" width="30%">
+                    <apex:outputLink style="color: #009;" value="{!URLFOR($Action.Task__c.View, tM.seq__Controlling_Task__c)}">{!tM.seq__Controlling_Task__r.Name}</apex:outputLink>
+                </apex:column>
+                <apex:column width="40%" headerValue="Subject" value="{!tM.seq__Controlling_Task_Subject__c}"/>
+            </apex:pageBlockTable>
+        </apex:pageBlockSection>
+        <apex:pageBlockSection columns="1" title="Depending Task(s)">
+            <apex:outputText rendered="{!isDepTaskListEmpty}">No records to display.</apex:outputText>
+            <apex:pageBlockTable value="{!depTMList}" var="tM" rendered="{!NOT(isDepTaskListEmpty)}">
+                <apex:column headerValue="Depending Task Mapper" width="30%">
+                    <apex:outputLink style="color: #009;" value="{!URLFOR($Action.Controlling_Task_Mapper__c.View, tM.Id)}">{!tM.Name}</apex:outputLink>
+                </apex:column>
+                <apex:column headerValue="Dependent Task" width="30%">
+                    <apex:outputLink style="color: #009;" value="{!URLFOR($Action.Task__c.View, tM.seq__Dependent_Task__c)}">{!tM.seq__Dependent_Task__r.Name}</apex:outputLink>
+                </apex:column>
+                <apex:column headerValue="Subject" value="{!tM.seq__Dependent_Task_Subject__c}" width="40%"/>
+            </apex:pageBlockTable>
+        </apex:pageBlockSection>
+    </apex:pageBlock>
+</apex:page>

@@ -1,0 +1,1569 @@
+<apex:page standardController="seq__Task_Mapper__c"  showHeader="false" sidebar="false" extensions="testExt">
+<head> 
+        <title>Create Sequence Tasks</title>
+        <apex:includeScript value="{!URLFOR($Resource.seq__SequencerLibrary, '/media/js/jquery-1.7.1.min.js')}"  />
+        <apex:includeScript value="{!URLFOR($Resource.seq__SequencerLibrary, '/media/js/jquery-ui-1.8.17.custom.min.js')}"  />
+        <apex:stylesheet value="{!URLFOR($Resource.seq__SequencerLibrary, '/media/css/themes/sf/jquery-ui-1.8.17.custom.css')}"  />
+        <apex:stylesheet value="{!URLFOR($Resource.seq__SequencerLibrary, '/media/css/jsPlumb.css')}"  />
+        <apex:stylesheet value="{!URLFOR($Resource.seq__SequencerLibrary, '/media/css/FlowChart.css')}"  />
+        <apex:includeScript value="{!URLFOR($Resource.seq__SequencerLibrary, '/media/js/jQuery1.js')}"  />
+        <apex:includeScript value="{!URLFOR($Resource.jszip, '/jszip.js')}"/>
+	<apex:includeScript value="{!URLFOR($Resource.jszip, '/jszip-load.js')}"/>
+	<apex:includeScript value="{!URLFOR($Resource.jszip, '/jszip-deflate.js')}"/>
+	<apex:includeScript value="{!URLFOR($Resource.jszip, '/jszip-inflate.js')}"/>
+        <apex:includeScript value="{!URLFOR($Resource.seq__SequencerLibrary, '/media/js/jQuery2.js')}"  />
+        <apex:includeScript value="{!URLFOR($Resource.seq__SequencerLibrary, '/media/js/jsPlumb.js')}"  />
+        <script type="text/javascript">
+            var __sfdcSessionId = '{!GETSESSIONID()}';
+        </script>
+        <script src="../../soap/ajax/21.0/connection.js" type="text/javascript"></script>
+        <script src="../../soap/ajax/21.0/apex.js" type="text/javascript"></script>
+        <script> 
+            var chkUnload = 0;
+            var clickedButton = "";
+            var users = [];
+            var groups = [];
+            var contacts = [];
+            var windows = [];
+            var connections = [];
+            var taskInfo = [];
+            var sourceWindows = [];
+            var sourceTargets = [];     
+            var destinationWindows = [];
+            var sequencedWindows = [];
+            var sequencedConnections = [];
+            var sequencingTasks = [];
+            var seqWin = [];
+            var existingSFTaskNames = [];
+            var informationReturned;
+        </script>
+        <apex:includeScript value="{!URLFOR($Resource.seq__SequencerLibrary, '/media/js/FlowDemoCreate.js')}"  />
+        <apex:includeScript value="{!URLFOR($Resource.seq__SequencerLibrary, '/media/js/FlowDemoMethods.js')}"  />
+        <apex:includeScript value="{!URLFOR($Resource.seq__SequencerLibrary, '/media/js/Helper.js')}"  />
+        <script>
+            function doSequenece() {
+                try{
+                    sequencingTasks = [];
+                    for(i1 = 0; i1 <= sourceWindows.length; i1 ++)
+                    {
+                        var idSeq = sourceWindows[i1];
+                        var tInf = taskInfo[windows.indexOf(sourceWindows[i1])];
+                        var depTasks = [];
+                        if(sourceTargets[i1] == undefined)
+                        {
+                            sourceTargets.splice(i1, 1);
+                        }
+                        else
+                        {
+                            depTasks = sourceTargets[i1];
+                        }
+                        var TaskSequence = new Object();
+                        TaskSequence.name = tInf.name;
+                        TaskSequence.subject = tInf.subject;
+                        TaskSequence.selOwner = tInf.selOwner;
+                        TaskSequence.userName = tInf.userName;
+                        TaskSequence.userId = tInf.userId;
+                        TaskSequence.groupName = tInf.groupName;
+                        TaskSequence.groupId = tInf.groupId;
+                        TaskSequence.contactName = tInf.contactName;
+                        TaskSequence.contactId = tInf.contactId;
+                        TaskSequence.duePeriod = tInf.duePeriod;
+                        TaskSequence.IDSF = "";
+                        TaskSequence.IDSeq = idSeq;
+                        TaskSequence.childs = depTasks;
+                        sequencingTasks.push(TaskSequence);
+                    }
+                    for(i10 = 0; i10 <= destinationWindows.length; i10 ++)
+                    {
+                        var hasThere = 0;
+                        for(i11 = 0; i11 <= sequencingTasks.length; i11 ++)
+                        {
+                            if(sequencingTasks[i11].IDSeq == destinationWindows[i10])
+                            {
+                                hasThere = 1;
+                                break;
+                            }
+                        }
+                        if(hasThere == 0)
+                        {
+                            var idSeq1 = destinationWindows[i10];
+                            var tInf1 = taskInfo[windows.indexOf(destinationWindows[i10])];
+                            var depTasks1 = [];
+                            var TaskSequence1 = new Object();
+                            TaskSequence1.name = tInf1.name;
+                            TaskSequence1.subject = tInf1.subject;
+                            TaskSequence1.selOwner = tInf1.selOwner;
+                            TaskSequence1.userName = tInf1.userName;
+                            TaskSequence1.userId = tInf1.userId;
+                            TaskSequence1.groupName = tInf1.groupName;
+                            TaskSequence1.groupId = tInf1.groupId;
+                            TaskSequence1.contactName = tInf1.contactName;
+                            TaskSequence1.contactId = tInf1.contactId;
+                            TaskSequence1.duePeriod = tInf1.duePeriod;
+                            TaskSequence1.IDSF = "";
+                            TaskSequence1.IDSeq = idSeq1;
+                            TaskSequence1.childs = depTasks1;
+                            sequencingTasks.push(TaskSequence1);
+                        }
+                    }
+                }catch(e){
+                    //alert(e);
+                }
+            }
+            function existTaskName(tnam) {
+                try{
+                //alert(tnam);
+                tnam = tnam.trim().toLowerCase();
+                for(k = 0; k < taskInfo.length; k ++)
+                {
+                    if(taskInfo[k].name.toString().trim().toLowerCase() == tnam)
+                    {
+                        //alert("Task name already exists. Provide unique name.");
+                        return true;
+                    }
+                }
+                for(k = 0; k < existingSFTaskNames.length; k ++)
+                {
+                    if(existingSFTaskNames[k].toString().trim().toLowerCase() == tnam)
+                    {
+                       // alert("Task name already exists in this task mapper or other task mapper.\nProvide unique name.");
+                        return true;
+                    }
+                }
+                }catch(e){ 
+                //alert(e);
+                }
+                return false;
+            }
+            function hasNoOtherConnection(contn, chk) 
+            {
+                try{
+                var val;    
+                for(c7 = 0; c7 < connections.length; c7 ++)
+                {
+                    if(connections[c7] != contn)
+                    {
+                        if(chk == "source")
+                        {
+                            val = contn.sourceId;
+                            if(connections[c7].sourceId == val)
+                            {
+                                return false;
+                            }   
+                        }
+                        else if(chk == "destination")
+                        {
+                            val = contn.targetId;
+                            if(connections[c7].targetId == val)
+                            {
+                                return false;
+                            }   
+                        }                   
+                    }
+                }
+                }catch(e){
+                //alert(e);
+                }
+                return true;
+            }
+            //.............................................................
+            function existTaskName4Upload(arrTnamU) {
+                try{
+                    //alert(arrTnamU);
+                    for(k0 = 0; k0 < arrTnamU.length; k0 ++)
+                    {
+                        tnamU = arrTnamU[k0].trim().toLowerCase();
+                        countTNam = 0;
+                        for(k = 0; k < arrTnamU.length && k != k0; k ++)
+                        {
+                            //alert("-->k="+k+", k0="+k0+", ak="+arrTnamU[k]+", ak0="+arrTnamU[k0]);
+                            if(arrTnamU[k].toString().trim().toLowerCase() == tnamU)
+                            {
+                                //countTNam ++;
+                                //alert("Task name: "+arrTnamU[k0].trim()+" already exists in other line. Provide unique name.");
+                                return true;
+                            }
+                        }
+                        for(k = 0; k < existingSFTaskNames.length; k ++)
+                        {
+                            if(existingSFTaskNames[k].toString().trim().toLowerCase() == tnamU)
+                            {
+                                //alert("Task name: "+arrTnamU[k0].trim()+" already exists in this task mapper or other task mapper.\nProvide unique name.");
+                                return true;
+                            }
+                        }
+                    }    
+                }
+                catch(e){
+                    //alert(e);
+                }
+                return false;
+            }
+            
+            function validateAllTasks(csvTable)
+            {
+                var csvTaskNames = [];
+                var csvTaskParentNames = [];
+                var hasProb1 = 0;
+                for(j1 = 0; j1 < csvTable.length; j1 ++)
+                {
+                    if(j1 != 0)
+                    {
+                        for(j2 = 0; j2 < csvTable[j1].length; j2 ++)
+                        {
+                            if(j2 == 0)
+                                csvTaskNames.push(csvTable[j1][0].trim().toLowerCase());
+                            if(j2 == 6)
+                            {
+                                var parents = csvTable[j1][6].replace("(", "").replace(")", "");
+                                var parentList = parents.split(";");
+                                for(j3 = 0; j3 < parentList.length; j3 ++)
+                                {
+                                    if(parentList[j3].trim() != "")
+                                        csvTaskParentNames.push(parentList[j3].trim().toLowerCase());
+                                }
+                            }
+                        }
+                    }
+                }
+                if(existTaskName4Upload(csvTaskNames) == false)
+                {
+                    for(j4 = 0; j4 < csvTaskParentNames.length; j4 ++)
+                    {
+                        var existParent = 0;
+                        for(j5 = 0; j5 < csvTaskNames.length; j5 ++)
+                        {
+                            if(csvTaskParentNames[j4].trim().toLowerCase() == csvTaskNames[j5].trim().toLowerCase())
+                            {
+                                existParent = 1;
+                                break;
+                            }
+                        }
+                        if(existParent == 0)
+                        {
+                            //alert("Error: Parent "+csvTaskParentNames[j4].trim()+" doesn't exist in csv file.");
+                            return 1;
+                        }
+                    }
+                }
+                else
+                {
+                    return 1;
+                }
+                return 0;
+            }
+            
+            function validateTaskDetails(csvTableRow, lineNo)
+            {
+                noOwner = 0;
+                lineNo = lineNo + 1;
+                for(j0 = 0; j0 < csvTableRow.length; j0 ++)
+                {
+                    if(j0 == 0 && csvTableRow[j0].trim() == "")
+                    {
+                        //alert("Error: Task name is not defined at line: "+lineNo);
+                        return 1;
+                    }
+                    else if(j0 == 1 && csvTableRow[j0].trim() == "")
+                    {
+                        //alert("Error: Task comment is not defined at line: "+lineNo);
+                        return 1;
+                    }
+                    else if(j0 == 2 && csvTableRow[j0].trim() != "")
+                    {
+                        if(csvTableRow[j0].trim().indexOf('005') != 0 || (csvTableRow[j0].trim().length != 15 && csvTableRow[j0].trim().length != 18))
+                        {
+                            alert("Error: user for task is not correctly defined at line: "+lineNo);
+                            return 1;
+                        }
+                        var userPresent = 0;
+                        for(j1 = 0; j1 < users.length; j1 ++)
+                        {
+                            if(users[j1] == csvTableRow[j0].trim() || users[j1].trim().indexOf(csvTableRow[j0].trim()) == 0)
+                            {
+                                userPresent = 1;
+                                break;
+                            }
+                        }
+                        if(userPresent == 0)
+                        {
+                            alert("Error: user defined at line: "+lineNo+" doesn't exist.");
+                            return 1;
+                        }
+                        noOwner ++;
+                    }
+                    else if(j0 == 3 && csvTableRow[j0].trim() != "")
+                    {
+                        if(csvTableRow[j0].trim().indexOf('00G') != 0 || (csvTableRow[j0].trim().length != 15 && csvTableRow[j0].trim().length != 18))
+                        {
+                            alert("Error: group for task is not correctly defined at line: "+lineNo);
+                            return 1;
+                        }
+                        var groupPresent = 0;
+                        for(j1 = 0; j1 < groups.length; j1 ++)
+                        {
+                            if(groups[j1] == csvTableRow[j0].trim() || groups[j1].trim().indexOf(csvTableRow[j0].trim()) == 0)
+                            {
+                                groupPresent = 1;
+                                break;
+                            }
+                        }
+                        if(groupPresent == 0)
+                        {
+                            alert("Error: group defined at line: "+lineNo+" doesn't exist.");
+                            return 1;
+                        }
+                        noOwner ++;
+                    }
+                    else if(j0 == 4 && csvTableRow[j0].trim() != "")
+                    {
+                        if(csvTableRow[j0].trim().indexOf('003') != 0 || (csvTableRow[j0].trim().length != 15 && csvTableRow[j0].trim().length != 18))
+                        {
+                            alert("Error: contact for task is not correctly defined at line: "+lineNo);
+                            return 1;
+                        }
+                        var contactPresent = 0;
+                        for(j1 = 0; j1 < contacts.length; j1 ++)
+                        {
+                            if(contacts[j1] == csvTableRow[j0].trim() || contacts[j1].trim().indexOf(csvTableRow[j0].trim()) == 0)
+                            {
+                                contactPresent = 1;
+                                break;
+                            }
+                        }
+                        if(contactPresent == 0)
+                        {
+                            alert("Error: contact defined at line: "+lineNo+" doesn't exist.");
+                            return 1;
+                        }
+                        noOwner ++;
+                    }
+                    
+                    if(j0 == 5 && csvTableRow[j0].trim() != "")
+                    {
+                        try
+                        {
+                            gapVal = parseInt(csvTableRow[j0].trim());
+                            if(gapVal < 0)
+                            {
+                                alert("Error: Gap period of task is negetive value at line: "+lineNo);
+                                return 1;
+                            }
+                        }
+                        catch(e)
+                        {
+                            alert("Error: Gap period of task is not defined with correct value at line: "+lineNo);
+                            return 1;
+                        }
+                    }
+                    else if(j0 == 5)
+                    {
+                        alert("Error: Gap period of task is defined at line: "+lineNo);
+                        return 1;
+                    }    
+                }
+                if(noOwner == 0)
+                {
+                    alert("Error: No owner is defined at line: "+lineNo);
+                    return 1;
+                }
+                else if(noOwner > 1)
+                {
+                    alert("Error: More than one owner is defined at line: "+lineNo);
+                    return 1;
+                }
+                return 0;
+            }
+            //.............................................................
+            $(document).ready(function(){
+                $('#upload').click(function(){
+                    $( "#taskUploadForm" ).dialog( "open" );
+                    chkUnload = 1;
+                });
+                
+                $('#redirectLink').click(function(){
+                    window.location = '/{!Id}';
+                });
+                
+                $('#userPanel').hide();
+                $('#groupPanel').hide();
+                $('#contactPanel').hide();
+                
+                $("#selectOwner").change(function () {
+                    var str = "";
+                    $("#selectOwner option:selected").each(function () {
+                        str = $(this).val();
+                    });
+                    
+                    if(str == 'user')
+                    {
+                        $('#groupPanel').slideUp('slow');
+                        $('#contactPanel').slideUp('slow');
+                        $('#userPanel').slideDown('slow');
+                    }
+                    else if(str == 'group')
+                    {
+                        $('#userPanel').slideUp('slow');
+                        $('#contactPanel').slideUp('slow');
+                        $('#groupPanel').slideDown('slow');
+                    }
+                    else if(str == 'contact')
+                    {
+                        $('#userPanel').slideUp('slow');
+                        $('#groupPanel').slideUp('slow');
+                        $('#contactPanel').slideDown('slow');
+                    }
+                    else
+                    {
+                        $('#userPanel').slideUp('slow');
+                        $('#groupPanel').slideUp('slow');
+                        $('#contactPanel').slideUp('slow');
+                    }
+                });
+                
+                $("#selectOwner2").change(function () {
+                    var str = "";
+                    $("#selectOwner2 option:selected").each(function () {
+                        str = $(this).val();
+                    });
+                    
+                    if(str == 'user')
+                    {
+                        $('#groupPanel2').slideUp('slow');
+                        $('#contactPanel2').slideUp('slow');
+                        $('#userPanel2').slideDown('slow');
+                    }
+                    else if(str == 'group')
+                    {
+                        $('#userPanel2').slideUp('slow');
+                        $('#contactPanel2').slideUp('slow');
+                        $('#groupPanel2').slideDown('slow');
+                    }
+                    else if(str == 'contact')
+                    {
+                        $('#userPanel2').slideUp('slow');
+                        $('#groupPanel2').slideUp('slow');
+                        $('#contactPanel2').slideDown('slow');
+                    }
+                    else
+                    {
+                        $('#userPanel2').slideUp('slow');
+                        $('#groupPanel2').slideUp('slow');
+                        $('#contactPanel2').slideUp('slow');
+                    }
+                });
+                //.......................................start
+                
+               var errorMsg = "";
+                var fname = "";
+                //validation of file
+                if(errorMsg == "")
+                {
+                    if(fname != "")
+                    {
+                        hasProb = 0;
+                        var retArr = new Array(100);  
+                        //alert(retArr[0].length);
+                        if(retArr.length > 0 && retArr[0].length > 1)
+                        {
+                            if(retArr[0][0].length != 7)
+                            {
+                                alert("Error: File should have seven columns");
+                                hasProb = 1;
+                            }
+                        } 
+                        else
+                        {
+                            alert("Error: File doesn't have any record.");
+                            hasProb = 1;
+                        }
+                        if(hasProb == 0)
+                        {
+                            for(var i = 0; i < retArr.length; i ++)
+                            {
+                                hasProb = validateAllTasks(retArr[0]);
+                                if(hasProb == 0)
+                                {
+                                    for(var j = 0; j < retArr[i].length; j ++)
+                                    {
+                                        if(j != 0)
+                                        {
+                                            //alert("Line "+(j+1)+": "+retArr[i][j]);
+                                            hasProb = validateTaskDetails(retArr[i][j], j);
+                                            
+                                        }
+                                        if(hasProb == 1)
+                                            break;
+                                    }
+                                }
+                                else
+                                {
+                                    break;
+                                }
+                            }
+                        } 
+                        //alert("Has Prob: "+hasProb+", Len: "+retArr[0].length);
+                        if(hasProb == 0)
+                        {
+                            $("#overl").show();
+                            $("#processTran").show();
+                            for(var i = 0; i < retArr.length; i ++)
+                            {
+                                for(var j = 1; j < retArr[i].length; j ++)
+                                {
+                                    var parnts = retArr[i][j][6].replace("(", "").replace(")", "").split(";");
+                                    for(var k = 0; k < parnts.length; k ++)
+                                    {
+                                        var Con = new Object();
+                                        if(parnts[k].trim() != "")
+                                        {
+                                            Con.controller = parnts[k].trim();
+                                            Con.dependent = retArr[i][j][0].trim();
+                                            sequencedConnections.push(Con);
+                                        }
+                                    }
+                                }    
+                            }
+                            
+                            for(var i = 0; i < retArr.length; i ++)
+                            {
+                                for(var j = 1; j < retArr[i].length; j ++)
+                                {
+                                    var TSeq = new Object(); 
+                                    TSeq.Name = retArr[i][j][0].trim();
+                                    TSeq.Subject = retArr[i][j][1].trim();
+                                    var owner1 = '';
+                                    if(retArr[i][j][4].trim() != "")    
+                                        owner1 = "contact";
+                                    if(retArr[i][j][2].trim() != "")
+                                        owner1 = "user";
+                                    if(retArr[i][j][3].trim() != "")    
+                                        owner1 = "group";
+                                    //alert("owner: "+owner1)
+                                    TSeq.Owner = owner1;   
+                                    if(owner1 == "contact")
+                                    {
+                                        TSeq.CId = retArr[i][j][4].trim();
+                                        result11 = sforce.connection.query("Select Id, Name from contact where Id = '"+retArr[i][j][4].trim()+"'");
+                                        records11 = result11.getArray("records");
+                                        //alert("recUser="+records11[0]);
+                                        TSeq.CName = records11[0].Name;
+                                    }
+                                    else
+                                    {
+                                        TSeq.CId = "";
+                                        TSeq.CName = "";
+                                    }
+                                    if(owner1 == "user")
+                                    {
+                                        TSeq.UId = retArr[i][j][2].trim();
+                                      //  result11 = sforce.connection.query("Select Id, Username from User where Id = '"+retArr[i][j][2].trim()+"'");
+                                        records11 = result11.getArray("records");
+                                        //alert("recUser="+records11[0]);
+                                        TSeq.UName = records11[0].Username;
+                                    }
+                                    else
+                                    {
+                                        TSeq.UId = "";
+                                        TSeq.UName = "";
+                                    }
+                                    if(owner1 == "group")
+                                    {
+                                        TSeq.GId = retArr[i][j][3].trim();
+                                        result11 = sforce.connection.query("Select Id, Name from Group where Id = '"+retArr[i][j][3].trim()+"'");
+                                        records11 = result11.getArray("records");
+                                        //alert("recGroup="+records11[0]);
+                                        TSeq.GName = records11[0].Name;
+                                    }
+                                    else
+                                    {
+                                        TSeq.GId = "";
+                                        TSeq.GName = "";
+                                    }
+                                    TSeq.Gap = retArr[i][j][5].trim();
+                                    if(sequencedConnections.length == 0)
+                                    {
+                                        TSeq.IsStart = 1;
+                                        TSeq.IsStop = 1;
+                                    }
+                                    else
+                                    {
+                                        var IsStrt = 1;
+                                        var IsStp = 1;
+                                        for(var j1 = 0; j1 < sequencedConnections.length; j1 ++)
+                                        {
+                                            if(sequencedConnections[j1].controller == retArr[i][j][0].trim())
+                                                IsStp = 0;
+                                            if(sequencedConnections[j1].dependent == retArr[i][j][0].trim())
+                                                IsStrt = 0;    
+                                        }
+                                        TSeq.IsStart = IsStrt;
+                                        TSeq.IsStop = IsStp;
+                                        //alert("Line "+j+": "+retArr[i][j]+" , connections: srt-> "+TSeq.IsStart+", stp-> "+TSeq.IsStop);
+                                    }    
+                                    sequencedWindows.push(TSeq); 
+                                }
+                            }
+                            // in if  
+                            //alert("reach here.");
+                            jsPlumbDemo.MakeExistingTasks();      
+                        }   
+                    }    
+                }    
+                else
+                {
+                    //alert("Error: "+errorMsg);
+                }
+                $( "#taskUploadForm" ).dialog({
+                    autoOpen: false,
+                    height: 140,
+                    width: 450,
+                    modal: true,
+                    buttons: {
+                        Cancel: function(){
+                            chkUnload = 0;
+                            $( this ).dialog( "close" );
+                        }
+                    },
+                    create: function (event) { 
+                        $(event.target).parent().css('position', 'fixed');
+                    },
+                    close: function() {
+                        chkUnload = 0;
+                    }
+                });
+                
+                //.......................................stop
+                $( "#taskForm" ).dialog({
+                    autoOpen: false,
+                    height: 340,
+                    width: 450,
+                    modal: true,
+                    buttons: {
+                        "Create Step": function(){
+                            try{
+                            var nm = $("#name").val();
+                            var sub = $("#subject").val();
+                            var ownerType = $("#selectOwner option:selected").val();
+                            var uname = '';
+                            var gname = '';
+                            var cname = '';
+                            var ugId = '';
+                            var uid = '';
+                            var gid = '';
+                            var cid = '';
+                            var duePeriod = 0;
+                            if(ownerType == 'user')
+                            {
+                                uname = $('#username').val();
+                                ugId = $('#userid').val();
+                                uid = $('#userid').val();
+                            }
+                            else if(ownerType == 'group')
+                            {
+                                gname = $('#groupname').val();
+                                ugId = $('#groupid').val();
+                                gid = $('#groupid').val();
+                            }
+                            else if(ownerType == 'contact')
+                            {
+                                cname = $('#contactname').val();
+                                ugId = $('#contactid').val();
+                                cid = $('#contactid').val();
+                            }    
+                            if($('#gapPeriod').val() != "")
+                            {
+                                try
+                                {
+                                    duePeriod = parseInt($('#gapPeriod').val());
+                                    if(duePeriod < 0)
+                                    {
+                                        $('#gapPeriod').val('0');
+                                        duePeriod = 0;
+                                    }
+                                }
+                                catch(e)
+                                {
+                                    $('#gapPeriod').val('0');
+                                }
+                            }
+                            if(nm != undefined && nm.trim() != "")
+                            {
+                                var selOwner = $("#selectOwner option:selected").val();
+                                if(existTaskName(nm) == false)
+                                {
+                                    jsPlumbDemo.addWindow(nm, sub, selOwner, uid, uname, gid, gname, cid, cname, duePeriod);
+                                    $(this).dialog( "close" );
+                                }   
+                            }    
+                            else
+                            {
+                                if(nm == undefined || nm.trim() == "")
+                                {
+                                    $("#name").addClass( "ui-state-error" ).focus();                                    
+                                }
+                                if(sub == undefined || sub.trim() == "")
+                                    $("#subject").addClass( "ui-state-error" ).focus();   
+                                if(ugId == undefined || ugId.trim() == "")
+                                {
+                                    if(ownerType == 'user')
+                                        $('#username').addClass( "ui-state-error" ).focus();    
+                                    else if(ownerType == 'group')
+                                        $('#groupname').addClass( "ui-state-error" ).focus();
+                                    else if(ownerType == 'contact')
+                                        $('#contactname').addClass( "ui-state-error" ).focus();    
+                                    else
+                                        $("#selectOwner").addClass( "ui-state-error" );
+                                } 
+                                if($('#gapPeriod').val() == '')
+                                    $('#gapPeriod').addClass( "ui-state-error" );
+                                    
+                                alert("All the fields are mandatory.");
+                            }
+                            }catch(e)
+                            {
+                               // alert("err: "+e);
+                            }
+                        },
+                        Cancel: function(){
+                            $( this ).dialog( "close" );
+                        }
+                    },
+                    create: function (event) { 
+                        $(event.target).parent().css('position', 'fixed');
+                    },    
+                    close: function() {
+                        $("#name").val( "" ).removeClass( "ui-state-error" );
+                        $("#subject").val( "" ).removeClass( "ui-state-error" );
+                        $('#gapPeriod').val( "0" ).removeClass( "ui-state-error" );
+                        $("#selectOwner").removeClass( "ui-state-error" );
+                        $("select[name=selectOwner] option:contains('--Select Type of Owner--')").attr("selected", "selected");
+                        $('#groupname').val("").removeClass( "ui-state-error" );
+                        $('#groupid').val("").removeClass( "ui-state-error" );
+                        $('#username').val("").removeClass( "ui-state-error" );
+                        $('#userid').val("").removeClass( "ui-state-error" );
+                        $('#contactname').val("").removeClass( "ui-state-error" );
+                        $('#contactid').val("").removeClass( "ui-state-error" );
+                    }
+                });
+                $( "#taskForm2" ).dialog({
+                    autoOpen: false,
+                    height: 340,
+                    width: 450,
+                    modal: true,
+                    buttons: {
+                        "Save": function(){
+                            try{
+                            var nm10 = $("#name2").val();
+                            var sub10 = $("#subject2").val();
+                            var ownerType10 = $("#selectOwner2 option:selected").val();
+                            var uname10 = '';
+                            var gname10 = '';
+                            var cname10 = '';
+                            var ugId10 = '';
+                            var uid10 = '';
+                            var gid10 = '';
+                            var cid10 = '';
+                            var duePeriod10 = 0;
+                            if(ownerType10 == 'user')
+                            {
+                                uname10 = $('#username2').val();
+                                ugId10 = $('#userid2').val();
+                                uid10 = $('#userid2').val();
+                            }
+                            else if(ownerType10 == 'group')
+                            {
+                                gname10 = $('#groupname2').val();
+                                ugId10 = $('#groupid2').val();
+                                gid10 = $('#groupid2').val();
+                            } 
+                            else if(ownerType10 == 'contact')
+                            {
+                                cname10 = $('#contactname2').val();
+                                ugId10 = $('#contactid2').val();
+                                cid10 = $('#contactid2').val();
+                            }   
+                            if($('#gapPeriod2').val() != "")
+                            {
+                                try
+                                {
+                                    duePeriod10 = parseInt($('#gapPeriod2').val());
+                                    if(duePeriod10 < 0)
+                                    {
+                                        $('#gapPeriod2').val('0');
+                                        duePeriod10 = 0;
+                                    }
+                                }
+                                catch(e)
+                                {
+                                    $('#gapPeriod2').val('0');
+                                }
+                            }
+                            if(sub10 != undefined && sub10.trim() != "" && ugId10 != '' && $('#gapPeriod2').val() != "")
+                            {
+                                taskInfo[windows.indexOf(informationReturned.id)].name = nm10;
+                                taskInfo[windows.indexOf(informationReturned.id)].subject = sub10;
+                                taskInfo[windows.indexOf(informationReturned.id)].selOwner = ownerType10;
+                                taskInfo[windows.indexOf(informationReturned.id)].userName = uname10;
+                                taskInfo[windows.indexOf(informationReturned.id)].userId = uid10;
+                                taskInfo[windows.indexOf(informationReturned.id)].groupName = gname10;
+                                taskInfo[windows.indexOf(informationReturned.id)].groupId = gid10;
+                                taskInfo[windows.indexOf(informationReturned.id)].contactName = cname10;
+                                taskInfo[windows.indexOf(informationReturned.id)].contactId = cid10;
+                                taskInfo[windows.indexOf(informationReturned.id)].duePeriod = duePeriod10;
+                                informationReturned.d.innerHTML = "<strong>"+nm10+"<strong><br/><br/>";
+                                informationReturned.d.title = "Subject: "+sub10;
+                                $(this).dialog( "close" );          
+                            }    
+                            else
+                            {
+                                if(nm10 == undefined || nm10.trim() == "")
+                                {
+                                    $("#name2").addClass( "ui-state-error" ).focus();                                    
+                                }
+                                if(sub10 == undefined || sub10.trim() == "")
+                                    $("#subject2").addClass( "ui-state-error" ).focus();  
+                                if(ugId10 == undefined || ugId10.trim() == "")
+                                {
+                                    if(ownerType10 == 'user')
+                                        $('#username2').addClass( "ui-state-error" ).focus();    
+                                    else if(ownerType10 == 'group')
+                                        $('#groupname2').addClass( "ui-state-error" ).focus();
+                                    else if(ownerType10 == 'contact')
+                                        $('#contactname2').addClass( "ui-state-error" ).focus();    
+                                    else
+                                        $("#selectOwner2").addClass( "ui-state-error" );
+                                } 
+                                if($('#gapPeriod2').val() == '')
+                                    $('#gapPeriod2').addClass( "ui-state-error" );
+                                          
+                                alert("All the fields are mandatory.");
+                            }
+                            }catch(e){
+                            //alert(e);
+                            }
+                         },   
+                         Cancel: function(){
+                            $( this ).dialog( "close" );
+                        }
+                    },
+                    create: function (event) { 
+                        $(event.target).parent().css('position', 'fixed');
+                    },
+                    close: function() {
+                        $("#name2").val( "" ).removeClass( "ui-state-error" );
+                        $("#subject2").val( "" ).removeClass( "ui-state-error" );
+                        $('#gapPeriod2').val( "0" ).removeClass( "ui-state-error" );
+                        $("#selectOwner2").removeClass( "ui-state-error" );
+                        $("select[name=selectOwner2] option:contains('--Select Type of Owner--')").attr("selected", "selected");
+                        $('#groupname2').val("").removeClass( "ui-state-error" );
+                        $('#groupid2').val("").removeClass( "ui-state-error" );
+                        $('#username2').val("").removeClass( "ui-state-error" );
+                        $('#userid2').val("").removeClass( "ui-state-error" );
+                        $('#contactname2').val("").removeClass( "ui-state-error" );
+                        $('#contactid2').val("").removeClass( "ui-state-error" );
+                    }
+                });
+                $("#taskConf").dialog({
+                    resizable: false,
+                    autoOpen: false,
+                    height:340,
+                    width: 450,
+                    modal: true,
+                    buttons: {
+                        "Edit": function() {
+                            try{
+                                $('#userPanel2').show();
+                                $('#groupPanel2').show();
+                                $('#contactPanel2').show();
+                                $("select[name=selectOwner2] option:contains('--Select Type of Owner--')").attr("selected", "selected");
+                                $("#name2").val(taskInfo[windows.indexOf(informationReturned.id)].name);
+                                $("#subject2").val(taskInfo[windows.indexOf(informationReturned.id)].subject);
+                                if(taskInfo[windows.indexOf(informationReturned.id)].selOwner == "user")
+                                {
+                                    $("select[name=selectOwner2] option:contains('User')").attr("selected", "selected");
+                                    $('#groupPanel2').hide();
+                                    $('#contactPanel2').hide();
+                                }
+                                else if(taskInfo[windows.indexOf(informationReturned.id)].selOwner == "group")
+                                {
+                                    $("select[name=selectOwner2] option:contains('Group')").attr("selected", "selected");
+                                    $('#userPanel2').hide();
+                                    $('#contactPanel2').hide();
+                                }
+                                else if(taskInfo[windows.indexOf(informationReturned.id)].selOwner == "contact")
+                                {
+                                    $("select[name=selectOwner2] option:contains('Contact')").attr("selected", "selected");
+                                    $('#userPanel2').hide();
+                                    $('#groupPanel2').hide();
+                                }
+                                $("#userid2").val(taskInfo[windows.indexOf(informationReturned.id)].userId);
+                                $("#username2").val(taskInfo[windows.indexOf(informationReturned.id)].userName);
+                                $("#groupid2").val(taskInfo[windows.indexOf(informationReturned.id)].groupId);
+                                $("#groupname2").val(taskInfo[windows.indexOf(informationReturned.id)].groupName);
+                                $("#contactid2").val(taskInfo[windows.indexOf(informationReturned.id)].contactId);
+                                $("#contactname2").val(taskInfo[windows.indexOf(informationReturned.id)].contactName);
+                                $("#gapPeriod2").val(taskInfo[windows.indexOf(informationReturned.id)].duePeriod);
+                                $( "#taskForm2" ).dialog("open");
+                                $( this ).dialog( "close" );
+                            }catch(e){
+                                //alert(e);
+                            }    
+                        },
+                        "Delete": function() {
+                            try{
+                                var tempConnList = [];
+                                var stat = "";
+                                for(c1 = 0; c1 < connections.length; c1 ++)
+                                {                               
+                                    if(connections[c1].sourceId == informationReturned.id)
+                                    {                                   
+                                        tempConnList.push(connections[c1]);
+                                        if(stat == "")
+                                            stat = "source";
+                                        else
+                                            stat = "both";
+                                    }
+                                    else if(connections[c1].targetId == informationReturned.id)
+                                    {
+                                        tempConnList.push(connections[c1]);
+                                        if(stat == "")
+                                            stat = "target";
+                                        else
+                                            stat = "both";
+                                    }
+                                }
+                                //alert("len: "+tempConnList.length+" stat: "+stat);
+                                delete sourceTargets[sourceWindows.indexOf(informationReturned.id)];
+                                for(c5 = 0; c5 < tempConnList.length; c5 ++)
+                                {
+                                    if(stat == "source" || stat == "both")
+                                    {
+                                        if(hasNoOtherConnection(tempConnList[c5], "source") == true)
+                                        {
+                                            delete sourceTargets[sourceWindows.indexOf(tempConnList[c5].sourceId)];
+                                            sourceWindows.splice(sourceWindows.indexOf(tempConnList[c5].sourceId), 1);
+                                            //sourceTargets.splice(sourceWindows.indexOf(tempConnList[c5].sourceId), 1);
+                                        }
+                                        else
+                                        {
+                                            var arrtrget = sourceTargets[sourceWindows.indexOf(tempConnList[c5].sourceId)];
+                                            if(arrtrget != undefined)
+                                            {
+                                                arrtrget.splice(arrtrget.indexOf(informationReturned.id), 1);
+                                                sourceTargets[sourceWindows.indexOf(tempConnList[c5].sourceId)] = arrtrget;
+                                            }   
+                                        }
+                                    }
+                                    if(stat == "target" || stat == "both")
+                                    {
+                                        if(hasNoOtherConnection(tempConnList[c5], "destination") == true)
+                                        {
+                                            destinationWindows.splice(destinationWindows.indexOf(tempConnList[c5].targetId), 1);
+                                        }
+                                    }
+                                    connections.splice(connections.indexOf(tempConnList[c5]), 1);
+                                }   
+                                mm = 0;
+                                for(sTar = 0; sTar < sourceTargets.length; sTar ++)
+                                {
+                                    if (sourceTargets[mm] == undefined)
+                                    {
+                                        sourceTargets.splice(mm, 1);
+                                    }
+                                    else
+                                    {
+                                        mm ++;
+                                    }
+                                }
+                                jsPlumb.detachAll(informationReturned.id);                 
+                                jsPlumb.removeAllEndpoints(informationReturned.id);
+                                $('#'+informationReturned.id).remove();
+                                taskInfo.splice(windows.indexOf(informationReturned.id), 1);
+                                windows.splice(windows.indexOf(informationReturned.id), 1);
+                                doSequenece();
+                                $( this ).dialog( "close" );
+                            }
+                            catch(e){
+                                //alert(e);
+                            }    
+                        },                        
+                        Cancel: function() {
+                            $( this ).dialog( "close" );
+                        }
+                    },
+                    create: function (event) { 
+                        $(event.target).parent().css('position', 'fixed');
+                    },
+                    close: function() {
+                        $("#name1").val("");
+                        $("#subject1").val("");
+                        $(this).dialog("close");
+                    }
+                }); 
+            });
+            $(window).bind("beforeunload", function() { 
+                if(chkUnload == 0)
+                {
+                 if (confirm("All the unsaved changes will be removed.\nDo you want to leave this page?") == true) {
+                       return true;
+                 } else {
+                       return false;
+                 }
+                } 
+            });      
+            
+            retrieveAllPrevTaskNames();
+            retrieveAllGrpUsrContc();
+            
+            function retrieveAllPrevTaskNames()
+            {
+                var query = "select Name from seq__Task__c where seq__Task_Mapper__c in (";
+                var tMapId2 = "{!seq__Task_Mapper__c.Id}";
+                var tMapRelObj2 = "{!seq__Task_Mapper__c.seq__Related_Object__c}";
+                result12 = sforce.connection.query("Select Id from seq__Task_Mapper__c where seq__Related_Object__c = '"+tMapRelObj2+"'");
+                records12 = result12.getArray("records");
+                for (var i=0; i< records12.length; i++) 
+                {
+                    var record12 = records12[i];
+                    if(i != 0)
+                        query += ", ";
+                    query += "'" + record12.Id + "'";
+                }
+                query += ")";
+                result13 = sforce.connection.query(query);
+                records13 = result13.getArray("records");
+                for (var i=0; i< records13.length; i++) 
+                {
+                    var record13 = records13[i];
+                    existingSFTaskNames.push(record13.Name);
+                }
+                //alert("exstng: "+existingSFTaskNames);    
+            }
+                                
+            function retrieveAllGrpUsrContc()
+            {
+                result13 = sforce.connection.query("Select Id from User");
+                records13 = result13.getArray("records");
+                for (var i=0; i< records13.length; i++) 
+                {
+                    var record13 = records13[i];
+                    users.push(record13.Id);
+                }
+                
+                result14 = sforce.connection.query("Select Id from Group");
+                records14 = result14.getArray("records");
+                for (var i=0; i< records14.length; i++) 
+                {
+                    var record14 = records14[i];
+                    groups.push(record14.Id);
+                }
+                
+                result15 = sforce.connection.query("Select Id from Contact");
+                records15 = result15.getArray("records");
+                for (var i=0; i< records15.length; i++) 
+                {
+                    var record15 = records15[i];
+                    contacts.push(record15.Id);
+                }
+            }                    
+                                
+            function showHelp()
+            {
+                var helpMsg = "1. Click 'Add a Task' to create new task. It will ask for task name.\n\n2. Start dragging from starting node(Blue Dot) and release it at end node(Green \nDot). It will create connection between two tasks.\n";
+                helpMsg += "\n3. Start node and end node of all custom task must be connected. Custom start \nnode(s) must be connected with 'Start' Task, on the other hand, custom end \nnode(s) must be connected with 'End' task.\n\n4. To delete a task or connection, double click on the component.\n";
+                helpMsg += "\n5. To remove all connections among tasks, click 'Remove all connections'.\n";
+                //helpMsg += "\n6. To see present task sequence status, click 'Show Tasks'.\n";
+                helpMsg += "\n6. To save tasks, click 'Save Tasks'.\n";
+                helpMsg += "\n7. Isolated tasks will not be included.\n";
+                alert(helpMsg);
+            }                        
+            
+            function saveSeq()
+            {
+                try{
+                    if(connections.length > 0)
+                    {
+                        var isStartIncluded = false;
+                        var isEndIncluded = false;
+                        var hasOtherStart = false;
+                        var hasOtherEnd = false;
+                        var hasSrc = false;
+                        var hasDest = false;
+                        var hasProb = false;
+                        
+                        doSequenece();
+                    
+                        for(s1 = 0; s1 < sourceWindows.length; s1 ++)
+                        {
+                            if(sourceWindows[s1] == "window0")
+                            {
+                                isStartIncluded = true;
+                            }
+                            else
+                            {
+                                hasSrc = false;
+                                for(d2 = 0; d2 < destinationWindows.length; d2 ++)
+                                {
+                                    if(destinationWindows[d2] == sourceWindows[s1])
+                                        hasSrc = true;
+                                }
+                                if(hasSrc == false)
+                                {
+                                  //  alert("Task: "+taskInfo[windows.indexOf(sourceWindows[s1])].name+" has no source task.\nOnly Start task should have this property.");
+                                    hasProb = true;
+                                    return null;
+                                }
+                            }
+                        }
+                        if(isStartIncluded == false)
+                        {
+                      //      alert("Start task must be included.");
+                            hasProb = true;
+                            return null;
+                        }
+                        for(d1 = 0; d1 < destinationWindows.length; d1 ++)
+                        {
+                            if(destinationWindows[d1] == "window1")
+                            {
+                                isEndIncluded = true;
+                            }
+                            else
+                            {
+                                hasDest = false;
+                                for(s2 = 0; s2 < sourceWindows.length; s2 ++)
+                                {
+                               //     alert("dest: "+destinationWindows[d2]);
+                                    if(sourceWindows[s2] == destinationWindows[d1])
+                                        hasDest = true;
+                                }
+                                if(hasDest == false)
+                                {
+                              //      alert("Task: "+taskInfo[windows.indexOf(destinationWindows[d1])].name+" has no next task.\nOnly End task should have this property.");
+                                    hasProb = true;
+                                    return null;
+                                }
+                            }                            
+                        }
+                        if(isEndIncluded == false)
+                        {
+                      //      alert("End task must be included.");
+                            hasProb = true;
+                            return null;
+                        }
+                        if(hasProb == false)
+                        {
+                            $("#overl").show();
+                            $("#processTran").show();
+                            var tMapId = "a04i000000Bd7kx";
+                
+                            
+                            var taskSequences1 = [];
+                            for(d4 = 0; d4 < sequencingTasks.length; d4 ++)
+                            {
+                                var taskPos = $("#"+sequencingTasks[d4].IDSeq).position();
+                                //alert(sequencingTasks[d4].subject+", " + sequencingTasks[d4].name);
+                                if(sequencingTasks[d4].name.toString() != "Start")
+                                {
+                                    //alert(sequencingTasks[d4].name+" = "+sequencingTasks[d4].subject+" = "+tMapId+" = "+taskPos.left);
+                                   // var task1 = new sforce.SObject("seq__Task__c");
+                                  //  task1.Name = sequencingTasks[d4].name.toString();
+                    
+                   //                 task1.seq__Task_Mapper__c = tMapId.toString();
+                       
+                     //               taskSequences1.push(task1);                                
+                                }
+                            }
+                            //alert("ici c paris");
+                            var allSucs = 0;
+                           // var result = sforce.connection.create(taskSequences1);
+                            
+                           // alert(result);
+                            for (var op1=0; op1<result.length; op1++) {
+                                if (result[op1].getBoolean("success")) {
+                                    allSucs ++;
+                                }  
+                               // alert('res '+result[op1]);                            
+                            }
+                            var crtdSuccess = 0;
+                            if(result.length == allSucs)
+                            {                                
+                                chkUnload = 1;
+                                crtdSuccess = 1;                                
+                            }
+                            else if(result.length > allSucs && allSucs != 0)
+                            {                                
+                                $("#overl").hide();
+                                $("#processTran").hide();
+                                alert("Few Tasks are created successfully.");
+                                document.location = "/"+tMapId;
+                            }    
+                            else
+                            {                               
+                                $("#overl").hide();
+                                $("#processTran").hide();
+                                alert("Task creation failed.");
+                                document.location = "/"+tMapId;
+                            }
+                            /************************* Retrieving created tasks *************************/
+                            result3 = sforce.connection.query("Select Name, Id, seq__Comment__c from seq__Task__c where seq__Task_Mapper__c = '"+tMapId+"'");
+                            records = result3.getArray("records");
+                            
+                            if(crtdSuccess == 1)
+                            {
+                                var taskRelations= [];
+                                for(d5 = 0; d5 < sequencingTasks.length; d5 ++)
+                                {
+                                    var parId = "";
+                                    for (var i31=0; i31< records.length; i31++) 
+                                    {
+                                        var record = records[i31];
+                                        if(record.Name == sequencingTasks[d5].name)
+                                        {
+                                            parId = record.Id;
+                                        }   
+                                    }
+                                    if(sequencingTasks[d5].name.toString() != "End")
+                                    {
+                                        for(d6 = 0; d6 < sequencingTasks[d5].childs.length; d6 ++)
+                                        {
+                                            var chldName = taskInfo[windows.indexOf(sequencingTasks[d5].childs[d6])].name;
+                                            var chldId = "";
+                                            for (var i32=0; i32< records.length; i32++) 
+                                            {
+                                                var record1 = records[i32];
+                                                if(record1.Name == chldName)
+                                                {
+                                                    chldId = record1.Id;
+                                                }   
+                                            }
+                                            if(parId.toString() != "" && chldId.toString() != "")
+                                            {
+                                                var taskRel = new sforce.SObject("seq__Controlling_Task_Mapper__c");
+                                                taskRel.seq__Controlling_Task__c = parId;
+                                                taskRel.seq__Dependent_Task__c = chldId;
+                                                taskRelations.push(taskRel);   
+                                            }    
+                                        }
+                                    }
+                                }      
+                             //   var result3 = sforce.connection.create(taskRelations);
+                                //alert(result3);
+                                $("#overl").hide();
+                                $("#processTran").hide();
+                                
+                                var account = new sforce.SObject("seq__Task_Mapper__c");
+					
+								  account.id = "a04i000000Bd7kx";
+								  account.seq__Workflow_Name__c = "Good To Process";
+								  result = sforce.connection.update([account]);
+                                
+                                
+                                generateZip(); 
+                                
+                                alert("Task sequencing is processed successfully.");
+                                document.location = "/"+tMapId;
+                            }                           
+                        }
+                    }   
+                    else
+                    {
+                        alert("No connection is there.");
+                    }
+                }
+                catch(e)
+                {
+                //alert(e);
+                }   
+            }
+            
+        </script>
+        <style type="text/css">
+            label, input { display:block; }
+            input.text { margin-bottom:12px; width:95%; padding: .4em; }
+            .ui-dialog .ui-state-error { padding: .3em; }
+            .validateTips { border: 1px solid transparent; padding: 0.3em; }
+            .customPopup2{
+                background-color: #FFFFCC;            
+                border-radius: 18px;
+                -moz-border-radius:18px;
+                -webkit-border-radius:18px;
+                border-style: solid;
+                border-width: 2px;
+                left: 50%;
+                padding:10px;
+                position: fixed;
+                z-index: 9999;
+                -moz-box-shadow:0 0 20px #000;
+                -webkit-box-shadow: 0 0 20px #000;
+                width: 240px;
+                margin-left: -120px;
+                top:250px;  
+                display: none;         
+            }
+            .customPopup{
+                background-color: white;            
+                border-radius: 18px;
+                -moz-border-radius:18px;
+                -webkit-border-radius:18px;
+                border-style: solid;
+                border-width: 2px;
+                left: 50%;
+                padding:10px;
+                position: absolute;
+                z-index: 9999;
+                -moz-box-shadow:0 0 200px 50px #000;
+                -webkit-box-shadow: 0 0 200px #000;
+                width: 580px;
+                margin-left: -250px;
+                top:50px;
+                display: none;
+            }
+            .redirectLink
+            {
+                text-decoration: none;
+                color: #0066FF;
+                font-weight: bold;
+                font-size: 16px;
+                cursor: pointer;
+                border-bottom: 5px solid #C0C0C0;
+            }
+            .redirectLink:hover
+            {
+                border-bottom: 5px solid #0066FF;
+            }
+        </style>    
+    </head> 
+    <body>
+    <div style="height: 5px; width: 100%;">&nbsp;</div>
+    <table width="100%">
+        <tr>
+
+            <td width="55%" align="right">
+                <span id="redirectLink" class="redirectLink">&lt;&lt;&nbsp;Back</span>
+            </td>
+            <td width="5%">
+                
+            </td>
+        </tr>
+    </table>
+    <div style="height: 5px; width: 100%;-moz-box-shadow: 0 4px 4px rgba(0, 0, 0, 0.4);-webkit-box-shadow: 0 4px 4px rgba(0, 0, 0, 0.4);box-shadow: 0 4px 4px rgba(0, 0, 0, 0.4);">&nbsp;</div>    
+    <br clear="all"/>
+    <div id="overl" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height:100%; z-index: 1100;background-image:url('{!URLFOR($Resource.seq__SequencerLibrary, '/media/images/Overlay.png')}')">
+        &nbsp;
+    </div>
+    <div id="processTran" class="customPopup2">
+       
+    </div>
+    <div id="delTask" class="customPopup2">
+ 
+    </div>
+    
+    <apex:pageBlock title="Support Process Wizard" id="detBlock" >
+        <apex:pageBlockSection >
+        <apex:pageBlockSectionItem >
+            <apex:outputLabel value="Support Process Name: Support Process 1"/>
+        </apex:pageBlockSectionItem>
+        </apex:pageBlockSection>
+    </apex:pageBlock>
+    
+       <apex:form >
+   	  <apex:actionFunction name="deployZip" action="{!deployZip}" rendered="{!ISNULL(AsyncResult)}" rerender="form">
+			<apex:param name="data" assignTo="{!ZipData}" value=""/>
+		</apex:actionFunction>
+		<c:zip name="generateZip" oncomplete="deployZip(data);" rendered="{!ISNULL(AsyncResult)}">
+			<c:zipEntry path="package.xml" data="{!PackageXml2}"/>
+			<c:zipEntry path="objects/Case.object" data="{!Case}"/>
+	</c:zip>
+   
+   </apex:form>
+
+      
+
+    
+    <span style="color:#0066FF;font-size:1.2em;">&nbsp;Sequencer Canvas</span><br />
+    <br clear="all" />
+    <div style="position:relative;margin-top:1px;-moz-border-radius:1em;border-radius:1em;padding:1em;-moz-box-shadow: 2px 2px 19px #aaa;;"> 
+        <div id="demo"> 
+            
+        </div> 
+        </div> 
+        <div id="sticky-anchor" style="top:18em;position:absolute;">&nbsp;</div>
+        <div id="explanation"> 
+            <p><a id="add" href="#" class="cmd" style="color:#0066FF;">Add a Step</a></p> 
+            <p><a id="saving" href="#" class="cmd" style="color:#0066FF;" onclick="saveSeq()">Save Process</a></p>
+            <p><a id="clear" href="#" class="cmd" style="color:#0066FF;">Remove all connections</a></p>
+            <!--<p><a id="retrieve" href="#" class="cmd" style="color:#0066FF;">Show Task Sequence</a></p>-->
+            <p><a id="help" href="#" class="cmd" style="color:#0066FF;" onclick="showHelp()">Help</a></p>  
+            <br /><hr /><br />
+            <p>
+                <span><img src="{!URLFOR($Resource.seq__SequencerLibrary, '/media/images/seq__BlueCircle.gif')}" width="18" /></span>&nbsp;&nbsp;
+                <span style="vertical-align:top;">Starting point of connector.</span>
+            </p>
+            <p>
+                <span><img src="{!URLFOR($Resource.seq__SequencerLibrary, '/media/images/seq__GreenCircle.gif')}" width="22" /></span>
+                <span style="vertical-align:top;">Ending point of connector.</span>
+            </p>
+            <p>
+                <span><img src="{!URLFOR($Resource.seq__SequencerLibrary, '/media/images/RightArrow.png')}" width="22" /></span>
+                <span style="vertical-align:top;">Double click on task to edit/delete.</span>
+            </p>
+            <p>
+                <span><img src="{!URLFOR($Resource.seq__SequencerLibrary, '/media/images/RightArrow.png')}" width="22" /></span>
+                <span style="vertical-align:top;">Double click on connector to delete.</span>
+            </p>    
+        </div> 
+
+        <div id="taskForm" title="Create new step">
+            <form>
+                <label for="name">Step Name</label>
+                <input type="text" name="name" id="name" class="text ui-widget-content ui-corner-all" />
+                <br clear="all"/>
+                <div style="height:10px; width:100%;">&nbsp;</div>
+               
+                
+           </form>
+        </div>
+        <div id="taskForm2" title="Edit task">
+            <form>
+                <label for="name">Task Name</label>
+                <input type="text" name="name2" id="name2" class="text ui-widget-content ui-corner-all" disabled="true" />
+                <label for="subject">Task Comment</label>
+                <input type="text" name="subject2" id="subject2" value="" class="text ui-widget-content ui-corner-all" />
+                <label for="selectOwner">Whom to Assign</label>
+                <select name="selectOwner2" id="selectOwner2" class="select ui-widget-content ui-corner-all" style="height: 28px;">
+                    <option value="" selected="selected">--Select Type of Owner--</option>
+                    <option value="user">User</option>
+                    <option value="group">Group</option>
+                    <option value="contact">Contact</option>
+                </select>
+                <br clear="all"/>
+                <div style="height:10px; width:100%;">&nbsp;</div>
+                <div id="userPanel2" style="width: 100%;">
+                    <label for="user">Select User</label>
+                    <span style="float: left; width: 90.5%;">
+                        <input type="text" name="username2" id="username2" value="" class="text ui-widget-content ui-corner-all" style="width: 95%;" disabled="true" />
+                        <input type="hidden" name="userid2" id="userid2" />
+                    </span>
+                    <span style="float: right; width: 9.5%;">    
+                        <a title="Search" onclick="windowOpener(350, 550, 'Search', '/apex/LookupUserGroup?name=username2&id=userid2&for=user');">
+                            <img class="lookupIcon" onmouseover="this.className = 'lookupIconOn';this.className = 'lookupIconOn';this.style.cursor = 'pointer';" onmouseout="this.className = 'lookupIcon';this.className = 'lookupIcon';" onfocus="this.className = 'lookupIconOn';" onblur="this.className = 'lookupIcon';" alt="Search" src="/s.gif"/>                        
+                        </a>
+                    </span>    
+                </div>
+                <div id="groupPanel2" style="width: 100%;">
+                    <label for="group">Select Group</label>
+                    <span style="float: left; width: 90.5%;">
+                        <input type="text" name="groupname2" id="groupname2" value="" class="text ui-widget-content ui-corner-all" style="width: 95%;" disabled="true" />
+                        <input type="hidden" name="groupid2" id="groupid2" />
+                    </span>
+                    <span style="float: right; width: 9.5%;">
+                        <a title="Search" onclick="windowOpener(350, 550, 'Search', '/apex/LookupUserGroup?name=groupname2&id=groupid2&for=group');">
+                            <img class="lookupIcon" onmouseover="this.className = 'lookupIconOn';this.className = 'lookupIconOn';this.style.cursor = 'pointer';" onmouseout="this.className = 'lookupIcon';this.className = 'lookupIcon';" onfocus="this.className = 'lookupIconOn';" onblur="this.className = 'lookupIcon';" alt="Search" src="/s.gif"/>                        
+                        </a>
+                    </span>
+                </div>
+                <div id="contactPanel2" style="width: 100%;">
+                    <label for="contact">Select Contact</label>
+                    <span style="float: left; width: 90.5%;">
+                        <input type="text" name="contactname2" id="contactname2" value="" class="text ui-widget-content ui-corner-all" style="width: 95%;" disabled="true" />
+                        <input type="hidden" name="contactid2" id="contactid2" />
+                    </span>
+                    <span style="float: right; width: 9.5%;">
+                        <a title="Search" onclick="windowOpener(350, 550, 'Search', '/apex/LookupUserGroup?name=contactname2&id=contactid2&for=contact');">
+                            <img class="lookupIcon" onmouseover="this.className = 'lookupIconOn';this.className = 'lookupIconOn';this.style.cursor = 'pointer';" onmouseout="this.className = 'lookupIcon';this.className = 'lookupIcon';" onfocus="this.className = 'lookupIconOn';" onblur="this.className = 'lookupIcon';" alt="Search" src="/s.gif"/>                        
+                        </a>
+                    </span>
+                </div>
+                <br clear="all"/>
+                <label for="gapPeriod">Gap Period(Days)</label>
+                <input type="text" name="gapPeriod2" id="gapPeriod2" value="0" class="text ui-widget-content ui-corner-all" />
+                 
+            </form>
+        </div>
+        <div id="taskConf" title="Select an option">
+            <form>
+                <label for="name">Task Name</label>
+                <input type="text" name="name1" id="name1" class="text ui-widget-content ui-corner-all" disabled="true" />
+                <label for="subject">Task Comment</label>
+                <input type="text" name="subject1" id="subject1" value="" class="text ui-widget-content ui-corner-all" disabled="true" />
+                <label for="selectOwner">Whom to Assign</label>
+                <input type="text" name="selectOwner11" id="selectOwner11" value="" class="text ui-widget-content ui-corner-all" disabled="true" />
+                <br clear="all"/>
+                <!--<div style="height:10px; width:100%;">&nbsp;</div>-->
+                <div id="userPanel1" style="width: 100%;">
+                    <label for="user">User</label>
+                    <span style="float: left; width: 100%;">
+                        <input type="text" name="username1" id="username1" value="" class="text ui-widget-content ui-corner-all" style="width: 95%;" disabled="true" />
+                        <input type="hidden" name="userid1" id="userid1" />
+                    </span>  
+                </div>
+                <div id="groupPanel1" style="width: 100%;">
+                    <label for="group">Group</label>
+                    <span style="float: left; width: 100%;">
+                        <input type="text" name="groupname1" id="groupname1" value="" class="text ui-widget-content ui-corner-all" style="width: 95%;" disabled="true" />
+                        <input type="hidden" name="groupid1" id="groupid1" />
+                    </span>
+                </div>
+                <div id="contactPanel1" style="width: 100%;">
+                    <label for="contact">Contact</label>
+                    <span style="float: left; width: 100%;">
+                        <input type="text" name="contactname1" id="contactname1" value="" class="text ui-widget-content ui-corner-all" style="width: 95%;" disabled="true" />
+                        <input type="hidden" name="contactid1" id="contactid1" />
+                    </span>
+                </div>
+                <br clear="all"/>
+                <label for="gapPeriod">Gap Period(Days)</label>
+                <input type="text" name="gapPeriod1" id="gapPeriod1" value="0" class="text ui-widget-content ui-corner-all" disabled="true" />
+                
+            </form>
+        </div>
+<!--<script src="http://www.google.com/jsapi"></script>-->
+<script> 
+    //google.load("jquery", "1");
+
+    function sticky_relocate() {
+      var window_top = $(window).scrollTop();
+      var div_top = $('#sticky-anchor').offset().top;
+      if (window_top > div_top)
+      {
+        $('#explanation').addClass('stick')
+      }
+      else
+        $('#explanation').removeClass('stick');
+    }
+    $(function(){
+        $(window).scroll(sticky_relocate);
+        sticky_relocate();
+    });
+
+  //var _gaq = _gaq || [];
+  //_gaq.push(['_setAccount', 'UA-15400992-4']);
+  //_gaq.push(['_trackPageview']);
+ 
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+  
+    function windowOpener(windowHeight, windowWidth, windowName, windowUri)
+    {
+        try{
+            var centerWidth = (window.screen.width - windowWidth) / 2;
+            var centerHeight = (window.screen.height - windowHeight) / 2;
+        
+            newWindow = window.open(windowUri, windowName, 'scrollbars=yes,width=' + windowWidth + 
+                ',height=' + windowHeight + 
+                ',left=' + centerWidth + 
+                ',top=' + centerHeight);
+        
+            newWindow.focus();
+            return newWindow.name;
+        }catch(e){
+            alert(e);
+        }    
+    } 
+</script> 
+</body>
+</apex:page>

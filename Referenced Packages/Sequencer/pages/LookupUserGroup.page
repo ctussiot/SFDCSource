@@ -1,0 +1,109 @@
+<apex:page showHeader="false" sidebar="false" controller="seq.LookupUserGroupController" id="LookupPage">
+    <apex:pageMessages id="pgMsg"/>
+    <apex:pageBlock id="PgBlock">
+        <apex:outputPanel id="userPanel">
+            <apex:pageBlockSection columns="1" title="Choose One User" collapsible="false" rendered="{!$CurrentPage.parameters.for=='user'}">
+                <apex:pageBlockSectionItem >
+                    <apex:form >
+                        <apex:inputText label="Search" id="searchUser" value="{!searchUserName}" title="Search user by first name or last name"/>
+                        <apex:outputPanel id="searchUserBtn" styleClass="btn">
+                            <apex:outputText value="Search"/>
+                            <apex:actionSupport reRender="userPanel,pgMsg" event="onclick" status="searchingUser" action="{!searchUser}"/>
+                        </apex:outputPanel>
+                    </apex:form>
+                </apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem >
+                    <apex:actionStatus id="searchingUser">
+                        <apex:facet name="start">
+                            <c:loading text="Searching User..." />
+                        </apex:facet>
+                    </apex:actionStatus>
+                </apex:pageBlockSectionItem>
+                <apex:pageBlockTable value="{!UserList}" var="o">
+                    <apex:column headerValue="User Name">
+                       <a href="#" onclick="try{top.window.opener.document.getElementById('{!JSENCODE($CurrentPage.parameters.name)}').value='{!JSENCODE(o.Username)}'; top.window.opener.document.getElementById('{!JSENCODE($CurrentPage.parameters.id)}').value='{!JSENCODE(o.Id)}'; top.window.opener.document.getElementById('{!JSENCODE($CurrentPage.parameters.name)}').focus(); top.window.close();}catch(e){alert(e);}">
+                          <apex:outputLabel value="{!o.Username}"/>
+                       </a>  
+                    </apex:column>
+                    <apex:column headerValue="User Full Name" >
+                          <apex:outputLabel value="{!o.Name}"/>
+                    </apex:column>
+                    <apex:column headerValue="Email" >
+                          <apex:outputLabel value="{!o.Email}"/>
+                    </apex:column>
+                    <apex:column headerValue="Phone" >
+                          <apex:outputLabel value="{!o.Phone}"/>
+                    </apex:column>
+                </apex:pageBlockTable>
+            </apex:pageBlockSection>
+        </apex:outputPanel>
+        
+        <apex:outputPanel id="groupPanel">
+            <apex:pageBlockSection columns="1" title="Choose One Group" collapsible="false" rendered="{!$CurrentPage.parameters.for=='group'}">
+                <apex:pageBlockSectionItem >
+                    <apex:form >
+                        <apex:inputText label="Search" id="searchGroup" value="{!searchGroupName}" title="Search group by its name."/>
+                        <apex:outputPanel id="searchGroupBtn" styleClass="btn">
+                            <apex:outputText value="Search"/>
+                            <apex:actionSupport reRender="groupPanel,pgMsg" event="onclick" status="searchingGroup" action="{!searchGroup}"/>
+                        </apex:outputPanel>
+                    </apex:form>
+                </apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem >
+                    <apex:actionStatus id="searchingGroup">
+                        <apex:facet name="start">
+                            <c:loading text="Searching Group..." />
+                        </apex:facet>
+                    </apex:actionStatus>
+                </apex:pageBlockSectionItem>
+                <apex:pageBlockTable value="{!GroupList}" var="o">
+                    <apex:column headerValue="Group Name" >
+                       <a href="#" onclick="try{top.window.opener.document.getElementById('{!JSENCODE($CurrentPage.parameters.name)}').value='{!JSENCODE(o.Name)}'; top.window.opener.document.getElementById('{!JSENCODE($CurrentPage.parameters.id)}').value='{!JSENCODE(o.Id)}'; top.window.opener.document.getElementById('{!JSENCODE($CurrentPage.parameters.name)}').focus(); top.window.close();}catch(e){alert(e);}">
+                          <apex:outputLabel value="{!o.Name}"/>
+                       </a>  
+                    </apex:column>
+                    <apex:column headerValue="Email" >
+                          <apex:outputLabel value="{!o.Email}"/>
+                    </apex:column>
+                    <apex:column headerValue="Type" >
+                          <apex:outputLabel value="{!o.Type}"/>
+                    </apex:column>
+                </apex:pageBlockTable>
+            </apex:pageBlockSection>
+        </apex:outputPanel>
+        
+        <apex:outputPanel id="contactPanel">
+            <apex:pageBlockSection columns="1" title="Choose One Contact" collapsible="false" rendered="{!isForEqContact}">
+                <apex:pageBlockSectionItem >
+                    <apex:form >
+                        <apex:inputText label="Search" id="searchContact" value="{!searchContactName}" title="Search contact by its name."/>
+                        <apex:outputPanel id="searchContactBtn" styleClass="btn">
+                            <apex:outputText value="Search"/>
+                            <apex:actionSupport reRender="contactPanel,pgMsg" event="onclick" status="searchingContact" action="{!searchContact}"/>
+                        </apex:outputPanel>
+                    </apex:form>
+                </apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem >
+                    <apex:actionStatus id="searchingContact">
+                        <apex:facet name="start">
+                            <c:loading text="Searching Contact..." />
+                        </apex:facet>
+                    </apex:actionStatus>
+                </apex:pageBlockSectionItem>
+                <apex:pageBlockTable value="{!ContactList}" var="o">
+                    <apex:column headerValue="Contact Name" >
+                       <a href="#" onclick="try{top.window.opener.document.getElementById('{!JSENCODE($CurrentPage.parameters.name)}').value='{!JSENCODE(o.Name)}'; top.window.opener.document.getElementById('{!JSENCODE($CurrentPage.parameters.id)}').value='{!JSENCODE(o.Id)}'; top.window.opener.document.getElementById('{!JSENCODE($CurrentPage.parameters.name)}').focus(); top.window.close();}catch(e){alert(e);}">
+                          <apex:outputLabel value="{!o.Name}"/>
+                       </a>  
+                    </apex:column>
+                    <apex:column headerValue="Email" >
+                          <apex:outputLabel value="{!o.Email}"/>
+                    </apex:column>
+                    <apex:column headerValue="Type" >
+                          <apex:outputLabel value="{!o.Department}"/>
+                    </apex:column>
+                </apex:pageBlockTable>
+            </apex:pageBlockSection>
+        </apex:outputPanel>
+    </apex:pageBlock>
+</apex:page>

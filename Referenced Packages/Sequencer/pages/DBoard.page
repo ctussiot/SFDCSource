@@ -1,0 +1,260 @@
+<apex:page tabStyle="Task" sidebar="false" showHeader="false">
+    <head>
+        <title>Sequence Tasks</title>
+        <apex:includeScript value="{!URLFOR($Resource.seq__SequencerLibrary, '/media/js/jquery-1.7.1.min.js')}"  />
+        <apex:includeScript value="{!URLFOR($Resource.seq__SequencerLibrary, '/media/js/jquery-ui-1.8.17.custom.min.js')}"  />
+        <apex:stylesheet value="{!URLFOR($Resource.seq__SequencerLibrary, '/media/css/themes/sf/jquery-ui-1.8.17.custom.css')}"  />
+        <style>
+            #sObjects ul { list-style-type: none; margin: 0; padding: 0; margin-bottom: 10px; }
+            #sObjects li { margin: 5px; padding: 5px; width: 195px; cursor: pointer;}
+            #dialog label, #dialog input { display:block; }
+            #dialog label { margin-top: 0.5em; }
+            #dialog input, #dialog textarea { width: 95%; }
+            #tabs { margin-top: 1em; }
+            #tabs li .ui-icon-close { float: left; margin: 0.4em 0.2em 0 0; cursor: pointer; }
+            #tabs li .ui-icon-nothing { float: left; margin: 0.4em 0.2em 0 0; }
+            #add_tab { cursor: pointer; }
+            
+            .homeLink
+            {
+                text-decoration: none;
+                color: #0066FF;
+                font-weight: bold;
+                font-size: 16px;
+                cursor: pointer;
+                border-bottom: 5px solid #C0C0C0;
+            }
+            .homeLink:hover
+            {
+                border-bottom: 5px solid #0066FF;
+            }
+        </style>
+        <script type="text/javascript">
+            var __sfdcSessionId = '{!GETSESSIONID()}';
+        </script>
+        <script src="../../soap/ajax/21.0/connection.js" type="text/javascript"></script>
+        <script src="../../soap/ajax/21.0/apex.js" type="text/javascript"></script>
+        <script>
+            var frmId = '';
+            $(function() {
+                ul = '{!LEFT($CurrentPage.URL, FIND('/', $CurrentPage.URL, 9))}';
+                ulHost = ul.substring(ul.indexOf('.')+1, ul.indexOf('.', ul.indexOf('.')+1));
+                $('#homeLink').click(function(){
+                    window.location = 'https://'+ulHost+'.salesforce.com/home/home.jsp';
+                });
+                var tabTop = $("#tabs").position().top;
+                var hgt = $(this).height() - tabTop;
+                var linkR = '';
+                var tab_counter = 2;
+                var ttl = '';
+                // tabs init with a custom tab template and an "add" callback filling in the content
+        
+                $("#frm-TaskInit__00000").css("height", hgt+"px");
+                var $tabs = $( "#tabs").tabs({
+                    tabTemplate: "<li><a href='#{href}'>#{label}</a> <span class='ui-icon ui-icon-close'>Remove Tab</span></li>",
+                    add: function( event, ui ) 
+                    {               
+                        //$( ui.panel ).append( "<iframe id='"+frmId+"' src='"+linkR+"&hgt="+hgt+"' style='width:100%; overflow:visible;' scrolling='no' marginwidth='0' marginheight='0' frameborder='0' vspace='0' hspace='0'/>" );
+                        //alert("1->"+hgt);
+                        $("#tabs").children("#tabs-"+ttl).append("<iframe id='"+frmId+"' src='"+linkR+"&hgt="+hgt+"' style='width:100%; height: "+hgt+"px; overflow:visible;' scrolling='no' marginwidth='0' marginheight='0' frameborder='0' vspace='0' hspace='0'/>");
+                        //alert($("#tabs").html());
+                    }
+                });
+                $("#tabList").sortable({
+                    axis: "x",
+                    containment: "parent"
+                });
+                $("#tabList").disableSelection();
+                //----------
+                $("#tabs").children("ul").children("li").children("a").click(function(){
+                    //alert("check3");
+                    var hrf = $(this).attr("href").split("#")[1];
+                    //alert("1-"+hrf);
+                    $(this).parent().parent().children("li").each(function(){
+                        $(this).attr("class", "ui-state-default ui-corner-top");
+                    });
+                    $(this).parent().attr("class", "ui-state-default ui-corner-top ui-tabs-selected ui-state-active");
+                    
+                    $(this).parent().parent().parent().children("div").each(function(){
+                        $(this).addClass("ui-tabs-hide");
+                    });
+                    $(this).parent().parent().parent().children("div").each(function(index){
+                        //alert($(this).attr("id")+" == "+hrf)
+                        if($(this).attr("id") == hrf)
+                        {
+                            $(this).removeClass("ui-tabs-hide");
+                            curIndex1 = index;
+                        }    
+                    });        
+                });
+                //---------
+                function addTab(name, title, link) 
+                {
+                    ttl = title;
+                    linkR = link;
+                    var st = "#tabs-" + title;
+                    frmId = 'frame-' + title; 
+                    if($(st).html() != null ) 
+                    {
+                        $tabs.tabs("select", st);
+                    } 
+                    else 
+                    {
+                        $tabs.tabs( "add", st, name );
+                        $tabs.tabs("select", st);
+                    }
+                }
+        
+                retriveTaskObjects();
+                
+                // addTab button: just opens the dialog
+                $( "#sobjectUl li.ui-state-default" )
+                    .click(function() {
+                        addTab($(this).text(), $(this).attr("title"), $(this).attr("dir"));
+                    });
+                
+                $("#tabs ul li a").click(function(){
+                    var hrf = $(this).attr("href");
+                    $(this).parent().parent().children("li").each(function(){
+                        $(this).attr("class", "ui-state-default ui-corner-top");
+                    });
+                    $(this).parent().attr("class", "ui-state-default ui-corner-top ui-tabs-selected ui-state-active");
+                    
+                    $(this).parent().parent().parent().children("div").each(function(){
+                        $(this).addClass("ui-tabs-hide");
+                    });
+                    $(hrf).removeClass("ui-tabs-hide");
+                });
+                
+                // close icon: removing the tab on click
+                // note: closable tabs gonna be an option in the future - see http://dev.jqueryui.com/ticket/3924
+                $( "#tabs span.ui-icon-close" ).live( "click", function() 
+                {
+                    if($(this).attr("dir") != "init")
+                    {
+                        var index = $( "li", $tabs ).index( $( this ).parent() );
+                        $tabs.tabs( "remove", index );
+                    }
+                });
+                $( "#tabs span.ui-icon-nothing" ).live( "click", function() 
+                {
+                    
+                });
+            });
+        </script>
+        <script>
+            var taskObjectKeySet = new Array();
+            var taskObjectNameSet = new Array();
+            var allObjectKeys = new Array();
+            var allObjectNames = new Array();
+            var allObjectLabels = new Array();
+            
+            function retriveTaskObjects()
+            {
+                result1 = sforce.connection.query("Select Id, WhatId from Task");
+                records1 = result1.getArray("records");
+                for (var i=0; i< records1.length; i++) 
+                {
+                    var record1 = records1[i];
+                    if(record1.WhatId != null)
+                    {
+                        var first3Digit = record1.WhatId.substr(0, 3);
+                        var res = findIt(first3Digit);
+                        if(res == 0)
+                        {
+                            taskObjectKeySet.push(first3Digit);    
+                        }
+                    }
+                }
+                //alert('1-->'+taskObjectKeySet);
+                
+                var result2 = sforce.connection.describeGlobal();
+                var sobjects = result2.getArray("sobjects");
+                for (var i=0; i<sobjects.length; i++) 
+                {
+                    allObjectKeys.push(sobjects[i].keyPrefix);
+                    allObjectNames.push(sobjects[i].name);
+                    allObjectLabels.push(sobjects[i].label);
+                }
+                //alert('2-->'+allObjectNames);
+                //alert('3-->'+allObjectLabels);
+                for(var i = 0; i < taskObjectKeySet.length; i++)
+                {
+                    var in1 = findIndex(taskObjectKeySet[i]);
+                    if(in1 != -1)
+                    {
+                        var label1 = allObjectLabels[in1];
+                        var name1 = allObjectNames[in1];
+                        //alert(label1); 
+                        $("#sobjectUl").append("<li id='"+taskObjectKeySet[i]+"' class='ui-state-default' dir='{!$Site.Prefix}/apex/ObjectTableContent?prefix="+taskObjectKeySet[i]+"&objName="+label1+"' title='"+name1+"'>"+label1+"</li>");
+                    }
+                }
+            }
+            
+            
+            function findIt(key)
+            {
+                var result = 0;
+                for(var i = 0; i < taskObjectKeySet.length; i++)
+                {
+                    if(taskObjectKeySet[i] == key)
+                    {
+                        result = 1;
+                        break;
+                    }
+                }
+                return result;
+            }
+            
+            function findIndex(key)
+            {
+                var result = -1;
+                for(var i = 0; i < allObjectKeys.length; i++)
+                {
+                    if(allObjectKeys[i] == key)
+                    {
+                        result = i;
+                        break;
+                    }
+                }
+                return result;
+            }
+
+        </script>
+    </head>
+    <div style="height: 5px; width: 100%;">&nbsp;</div>
+    <table width="100%">
+        <tr>
+            <td width="40%">
+                &nbsp;
+                <apex:image url="{!$Resource.seq__SeqLogo}" height="50"/>
+            </td>
+            <td width="55%" align="right">
+                <span id="homeLink" class="homeLink">Home</span>
+            </td>
+            <td width="5%">
+                
+            </td>
+        </tr>
+    </table><!-- border-bottom: 1px #0066FF solid;-->
+    <div style="height: 5px; width: 100%;-moz-box-shadow: 0 4px 4px rgba(0, 0, 0, 0.4);-webkit-box-shadow: 0 4px 4px rgba(0, 0, 0, 0.4);box-shadow: 0 4px 4px rgba(0, 0, 0, 0.4);">&nbsp;</div>    
+    <div id="sObjects" style="float: left; width:16%;">
+        <br/>
+        <font color="#0066FF" size="3"><b>&nbsp;Task Object List</b></font>
+        <br/>
+        <ul id="sobjectUl">
+            
+        </ul>
+    </div>
+    <div class="demo" style="float: right; width: 83%;" id="tabContainer">
+        <div id="tabs" style="overflow:visible;">
+            <ul id="tabList">
+                <li><a href="#tabs-1">Task Details</a> <span class="ui-icon ui-icon-nothing" dir="init">Remove Tab</span></li>
+            </ul>
+            <div id="tabs-1">
+                <iframe id="frm-TaskInit__00000" src="{!$Site.Prefix}/apex/DBoardEntryPage" style="width:100%; overflow:visible;" scrolling="no" marginwidth="0" marginheight="0" frameborder="0" vspace="0" hspace="0"/>
+                <!--<p>Proin elit arcu, rutrum commodo, vehicula tempus, commodo a, risus. Curabitur nec arcu. Donec sollicitudin mi sit amet mauris. Nam elementum quam ullamcorper ante. Etiam aliquet massa et lorem. Mauris dapibus lacus auctor risus. Aenean tempor ullamcorper leo. Vivamus sed magna quis ligula eleifend adipiscing. Duis orci. Aliquam sodales tortor vitae ipsum. Aliquam nulla. Duis aliquam molestie erat. Ut et mauris vel pede varius sollicitudin. Sed ut dolor nec orci tincidunt interdum. Phasellus ipsum. Nunc tristique tempus lectus.</p>-->
+            </div>
+        </div>
+    </div>    
+</apex:page>
