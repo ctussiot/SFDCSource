@@ -1,0 +1,111 @@
+<apex:page controller="seq.DBoardController" sidebar="false" showHeader="false">
+  <head>    
+    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+    <script type="text/javascript">
+      google.load('visualization', '1.0', {'packages':['controls', 'corechart']});
+      google.setOnLoadCallback(caller);
+      function caller()
+      {
+          drawDashboard();
+          drawChart();
+      }    
+      //var docWidth = document.body.offsetWidth;
+      function drawDashboard() {
+        var data = google.visualization.arrayToDataTable([
+          ['Name', 'Number of Tasks','Number of Days'],
+          ['Past Due date', {!PastDue},-1],
+          ['Due in 3 Days' , {!Due3},3],
+          ['Due in 7 Days', {!Due7},7],
+          ['Due in 15 Days', {!Due14},15],
+          ['Due in 20 Days', {!Due20},20],
+          ['Due in 30 Days', {!Due30},30]
+        ]);
+
+        var dashboard = new google.visualization.Dashboard(
+        document.getElementById('dashboard_div'));
+        
+        var daySlider = new google.visualization.ControlWrapper({
+          'controlType': 'NumberRangeFilter',
+          'containerId': 'filter_div',
+          'options': {
+             'width':400,
+             'height':300,
+            'filterColumnLabel': 'Number of Days',
+                       
+          }
+        });
+
+        var pieChart = new google.visualization.ChartWrapper({
+          'chartType': 'PieChart',
+          'containerId': 'chart_div3',
+          'options': {
+            'title':'Tasks based on Due Date',
+            'width': 450,
+            'height': 300,
+            'pieSliceText': 'value',
+            'legend': 'right',
+            'is3D': true,
+            'chartArea':{left:75, top: 0, right:0},
+            'filterColumnLabel': 'AAA'
+          }
+        });
+        
+         
+        dashboard.bind(daySlider, pieChart);
+
+        dashboard.draw(data);
+      }
+      
+      function drawChart() {
+          // Create and populate the data table.
+          var data = new google.visualization.DataTable();
+          data.addColumn('string', 'Task');
+          data.addColumn('number', 'Hours per Day');
+          data.addRows(5);
+          data.setValue(0, 0, 'Not Started');
+          data.setValue(0, 1, {!NotStarted});
+          data.setValue(1, 0, 'In Progress');
+          data.setValue(1, 1, {!InProgress});
+          data.setValue(2, 0, 'Completed');
+          data.setValue(2, 1, {!Completed});
+          data.setValue(3, 0, 'Waiting on someone else');
+          data.setValue(3, 1, {!Waiting});
+          data.setValue(4, 0, 'Deferred');
+          data.setValue(4, 1, {!Deferred});
+        
+          var options2 = {'title':'Task Status','width':450,'height':300,'is3D':true,'chartArea':{left:75, top: 0, right:0},};
+          // Create and draw the visualization.
+          new google.visualization.PieChart(document.getElementById('chart_div1')).
+              draw(data, options2);
+      }
+    </script>
+  </head>
+
+  <body>
+    <br/>
+    <center><font color="#0066FF" size="5"><b>Task Details Charts</b></font></center><br/>
+    <center>
+    <div style="width: 95%; height: 2px; border-bottom-style:solid; border-color: #0066FF;">
+        &nbsp;
+    </div>
+    </center>
+    <br/>
+    <div id="dashboard_div">
+      <br/><br/>
+      <div style="float: left">&nbsp;&nbsp;&nbsp;&nbsp;</div><div id="filter_div"></div>
+      <br/><br/>  
+      <div style="width: 48%; float: left;">
+          <center><font color="#0066FF" size="4">Task Chart on Due Date</font></center><br/><br/>
+          <div id="chart_div4"></div>
+          <div id="chart_div3"></div>
+      </div>    
+      <div style="width: 2%; height: 300px; float: left;">
+          &nbsp;
+      </div>
+      <div style="width: 48%; float: right;">
+          <center><font color="#0066FF" size="4">Task Chart on Status</font></center><br/><br/>
+          <div id="chart_div1"></div>
+      </div>
+    </div>
+  </body>
+</apex:page>

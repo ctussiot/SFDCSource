@@ -1,0 +1,24 @@
+<apex:page controller="seq.DBoardObjectPageController" sidebar="false" showHeader="false" tabStyle="seq__Task__c">
+    <apex:pageBlock >
+        <apex:detail subject="{!idVal}" relatedList="true"/>
+        
+        <apex:pageBlockSection title="Dependent Tasks" columns="1">
+            <!--
+            <apex:pageBlockTable value="{!dependentTaskList}" var="t">
+                <apex:column value="{!t.dependent_task__r.Name}" headerValue="Name"/>
+                <apex:column value="{!t.dependent_task__r.Comment__c}" headerValue="Subject"/>
+            </apex:pageBlockTable>
+            -->
+            <apex:pageBlockTable value="{!depTasks}" var="t">
+                <apex:column value="{!t.tName}" headerValue="Name"/>
+                <apex:column value="{!t.tComment}" headerValue="Comment"/>
+                <apex:column value="{!t.ownerName}" headerValue="Asigned To"/>
+                <apex:column headerValue="Due Date" style="{!IF(t.isWarning==true, 'background-color:YELLOW;', IF(t.isExpired==true, 'background-color:RED;', ''))}">
+                    <apex:outputText value="{0,date,MM'/'dd'/'yyyy}">
+                         <apex:param value="{!t.dDate}" /> 
+                     </apex:outputText>
+                </apex:column>
+            </apex:pageBlockTable>
+        </apex:pageBlockSection>
+    </apex:pageBlock>
+</apex:page>

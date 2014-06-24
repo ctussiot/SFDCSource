@@ -1,0 +1,205 @@
+<apex:page id="CalndrPage">
+    <head> 
+        <title>Tasks Calendar</title>
+        <apex:stylesheet value="{!URLFOR($Resource.seq__SequencerLibrary, '/media/css/themes/sf/jquery-ui-1.8.17.custom.css')}"  />
+        <apex:stylesheet value="{!URLFOR($Resource.seq__SequencerLibrary, '/media/css/fullcalendar.css')}" />
+        <apex:stylesheet value="{!URLFOR($Resource.seq__SequencerLibrary, '/media/css/selectMenu.css')}" />
+        <!--<apex:stylesheet value="{!URLFOR($Resource.SequencerLibrary, '/media/css/fullcalendar.print.css')}" />-->
+        <apex:includeScript value="{!URLFOR($Resource.seq__SequencerLibrary, '/media/js/jquery-1.7.1.min.js')}"  />
+        <apex:includeScript value="{!URLFOR($Resource.seq__SequencerLibrary, '/media/js/jquery-ui-1.8.17.custom.min.js')}"  />
+        <apex:includeScript value="{!URLFOR($Resource.seq__SequencerLibrary, '/media/js/fullcalendar.min.js')}" />
+        <apex:includeScript value="{!URLFOR($Resource.seq__SequencerLibrary, '/media/js/selectMenu.js')}" />
+        
+        <script type="text/javascript">
+            var __sfdcSessionId = '{!GETSESSIONID()}';
+        </script>
+        <script src="../../soap/ajax/21.0/connection.js" type="text/javascript"></script>
+        <script src="../../soap/ajax/21.0/apex.js" type="text/javascript"></script>
+        <script>
+            function trim0(val)
+            {
+                if(val.indexOf('0') == 0)
+                    val = val.split('0')[1];
+                val = parseInt(val);
+                return val;
+            }
+            var allUsers = [];
+            var allUserIds = [];
+            var evntArr = [];
+            var fc = "(";
+            result1 = sforce.connection.query("select id, CreatedDate, Description, OwnerId, Status, Subject, ActivityDate, WhatId, Priority from Task order by CreatedDate");
+            records1 = result1.getArray("records");
+            for (var i=0; i< records1.length; i++) 
+            {
+                var record1 = records1[i];
+                if(i != 0)
+                {
+                    fc += ", ";
+                }
+                fc += "'" + record1.OwnerId + "'";
+            }
+            fc += ")";
+            result2 = sforce.connection.query("select Id, Username from User order by Username");
+            records2 = result2.getArray("records");
+            for (var i=0; i< records2.length; i++) 
+            {
+                var record2 = records2[i];
+                allUsers.push(record2.Username);
+                allUserIds.push(record2.Id)
+            }
+            
+            function getTaskArr(filterWith)
+            {
+                
+                var q = "select id, CreatedDate, Description, OwnerId, Status, Subject, ActivityDate, WhatId, Priority from Task";
+                if(filterWith != '')
+                {
+                    q += " where OwnerId = '"+filterWith+"'";
+                }
+                result = sforce.connection.query(q);
+                records = result.getArray("records");
+                evntArr1 = [];
+                for (var i=0; i< records.length; i++) 
+                {
+                    var record = records[i];    
+                    if(record.Subject != '' && record.ActivityDate != '' && record.ActivityDate != null)
+                    {
+                        try
+                        {
+                            var evnt = new Object();
+                            var sD = record.CreatedDate.split('T')[0];
+                            var eD = record.ActivityDate.split('T')[0];
+                            evnt.title = record.Subject;
+                            var sYr = sD.split('-')[0];
+                            var sMon = sD.split('-')[1];
+                            var sDay = sD.split('-')[2];
+                            sMon = trim0(sMon) - 1;
+                            sDay = trim0(sDay);
+                            evnt.start = new Date(sYr, sMon, sDay, 0, 0, 0, 0);
+                            var eYr = eD.split('-')[0];
+                            var eMon = eD.split('-')[1];
+                            var eDay = eD.split('-')[2];
+                            eMon = trim0(eMon) - 1;
+                            eDay = trim0(eDay);
+                            evnt.end = new Date(eYr, eMon, eDay, 0, 0, 0, 0);
+                            evnt.allDay = true;
+                            evnt.comment = record.Description;
+                            evnt.priority = record.Priority;
+                            evnt.assignedOn = '' + sMon + '/' + sDay + '/' + sYr;
+                            evnt.dueDate = '' + eMon + '/' + eDay + '/' + eYr;
+                            evntArr1.push(evnt);
+                        }
+                        catch(e)
+                        {
+                            //alert(e);
+                        }    
+                    }                   
+                }
+                return evntArr1;
+            }
+            
+            $(document).ready(function() {
+                
+                for(var i = 0; i < allUsers.length; i ++)
+                {
+                    $('#selUser').append("<option value='"+allUserIds[i]+"'>"+allUsers[i]+"</option>");
+                }
+                
+                //$('select#selUser').selectmenu();
+
+                evntArr = getTaskArr('');
+                callCalendar(evntArr);
+                function callCalendar(evntArr2)
+                {
+                    $('#calendar').html('');
+                    $('#calendar').fullCalendar({
+                        theme: true,
+                        header: {
+                            left: 'prev,next today',
+                            center: 'title',
+                            right: 'month,agendaWeek,agendaDay'
+                        },
+                        editable: true,
+                        events: evntArr2,
+                        disableDragging: true,
+                        eventClick: function(calEvent, jsEvent, view) {
+                            //alert('Task:\t\t\t' + calEvent.title + '\nComment:\t\t' + calEvent.comment + '\nPriority:\t\t\t' + calEvent.priority + '\nAssigned on:\t' + calEvent.assignedOn + '\nDue Date:\t\t' + calEvent.dueDate);
+                            $("#tName").text(calEvent.title);
+                            $("#tComment").text(calEvent.comment);
+                            $("#tPriority").text(calEvent.priority);
+                            $("#tAssigned").text(calEvent.assignedOn);
+                            $("#tDue").text(calEvent.dueDate);
+                            $( "#taskDialog" ).dialog("open");
+                        }    
+                    });
+                }
+                $('select#selUser').change(function(){
+                    //alert($(this).val());
+                    evntArr = getTaskArr($(this).val());
+                    callCalendar(evntArr);
+                });
+                
+                $( "#taskDialog" ).dialog({
+                    autoOpen: false,
+                    height: 240,
+                    width: 350,
+                    modal: true,
+                    buttons: {
+                        Close: function(){
+                            $( this ).dialog( "close" );
+                        }
+                    }
+                });    
+            });
+        </script>
+        <style type='text/css'>
+            body {
+                margin-top: 40px;
+                //text-align: center;
+                font-size: 13px;
+                font-family: "Lucida Grande",Helvetica,Arial,Verdana,sans-serif;
+                }
+        
+            #calendar {
+                width: 900px;
+                margin: 0 auto;
+                }        
+        </style>
+    </head> 
+        <div style="height: 20px; width: 100%;">&nbsp;</div> 
+        <div id='choose' style='width: 100%; margin: 0 auto;'>
+            <center>
+            Choose User: &nbsp;
+            <select name="selUser" id="selUser">
+                <option value="" selected="selected">-- Select User --</option>
+            </select>
+            </center>
+        </div>
+        <div style="height: 10px; width: 100%;">&nbsp;</div> 
+        <div id='calendar'></div>
+        
+        <div id="taskDialog" title="Task Details">
+            <table width="100%">
+                <tr>
+                    <td width="40%">Task:</td>
+                    <td><span id="tName"></span></td>
+                </tr>
+                <tr>
+                    <td>Comment:</td>
+                    <td><span id="tComment"></span></td>
+                </tr>
+                <tr>
+                    <td>Priority:</td>
+                    <td><span id="tPriority"></span></td>
+                </tr>
+                <tr>
+                    <td>Assigned On:</td>
+                    <td><span id="tAssigned"></span></td>
+                </tr>
+                <tr>
+                    <td>Due Date:</td>
+                    <td><span id="tDue"></span></td>
+                </tr>
+            </table>
+        </div>
+</apex:page>

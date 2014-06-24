@@ -1,0 +1,4 @@
+<apex:page standardController="seq__Task_Request__c" extensions="seq.ScheduleTaskCloser" action="{!call}">
+    <apex:pageMessage severity="confirm" strength="3" summary="Scheduler Built Status" detail="Scheduler for task closing created successfully." rendered="{!isFine}"></apex:pageMessage>
+    <apex:pageMessage severity="error" strength="3" summary="Scheduler Built Status" detail="Scheduler is already created. Please delete that to rebuild." rendered="{!NOT(isFine)}"></apex:pageMessage>
+</apex:page>

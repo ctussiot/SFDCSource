@@ -1,0 +1,42 @@
+<apex:page tabStyle="seq__Task_Mapper__c" standardController="seq__Task_Mapper__c" extensions="seq.TaskMapperController">
+    <script>
+        function windowOpener(windowHeight, windowWidth, windowName, windowUri)
+        {
+            try{
+                var centerWidth = (window.screen.width - windowWidth) / 2;
+                var centerHeight = (window.screen.height - windowHeight) / 2;
+            
+                newWindow = window.open(windowUri, windowName, 'scrollbars=yes,width=' + windowWidth + 
+                    ',height=' + windowHeight + 
+                    ',left=' + centerWidth + 
+                    ',top=' + centerHeight);
+            
+                newWindow.focus();
+                return newWindow.name;
+            }catch(e){
+                alert(e);
+            }    
+        }
+    </script>
+    
+    <apex:form >
+        <apex:detail inlineEdit="true" relatedList="false" title="true" id="TaskMapper" subject="{!tmId}"/>
+        <apex:pageBlock >
+            <apex:pageBlockSection columns="1" title="Tasks" collapsible="false">
+                <apex:outputText rendered="{!isTaskListEmpty}">No records to display.</apex:outputText>
+                <apex:pageBlockTable value="{!taskList}" var="tL" rendered="{!NOT(isTaskListEmpty)}">
+                    <apex:column width="15%" headerValue="Action">
+                        &nbsp;<apex:outputLink style="color: #009;" value="{!URLFOR($Action.Task__c.Edit, tL.Id)}">Edit</apex:outputLink>&nbsp;|
+                        &nbsp;<apex:outputLink style="color: #009;" value="{!URLFOR($Action.Task__c.Delete, tL.Id)}">Delete</apex:outputLink>&nbsp;|
+                        &nbsp;<a href="#" style="color: #009;" title="Show Dependency" onclick="windowOpener(400, 700, 'Task Dependencies', '/apex/TaskDependencyPage?taskid={!JSENCODE(tL.Id)}&name={!JSENCODE(tL.Name)}')">Dependencies</a>
+                    </apex:column>
+                    <apex:column width="25%" headerValue="Task Name">
+                        <apex:outputLink style="color: #009;" value="{!URLFOR($Action.Task__c.View, tL.Id)}">{!tL.Name}</apex:outputLink>
+                    </apex:column>
+                    <apex:column width="45%" value="{!tL.seq__Comment__c}"/>
+                    <apex:column width="15%" value="{!tL.seq__Gap_Period_Days__c}"/>
+                </apex:pageBlockTable>
+            </apex:pageBlockSection>
+        </apex:pageBlock>
+    </apex:form>
+</apex:page>
